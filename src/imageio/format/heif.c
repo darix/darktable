@@ -52,7 +52,9 @@ typedef struct dt_imageio_heif_t
 
 typedef struct dt_imageio_heif_gui_t
 {
+#ifdef HEIF_HIGH_BIT_DEPTH
   GtkWidget *bit_depth;
+#endif
   GtkWidget *compression_type;
   GtkWidget *quality;
 } dt_imageio_heif_gui_t;
@@ -212,7 +214,11 @@ void *get_params(dt_imageio_module_format_t *self)
 {
   dt_imageio_heif_t *d = (dt_imageio_heif_t *)calloc(1, sizeof(dt_imageio_heif_t));
 
+#ifdef HEIF_HIGH_BIT_DEPTH
   d->bpp = dt_conf_get_int("plugins/imageio/format/heif/bpp");
+#else
+  d->bpp = 8;
+#endif
   d->compression_type = dt_conf_get_int("plugins/imageio/format/heif/compression_type");
 
   if (d->compression_type == heif_lossy) {
@@ -235,7 +241,9 @@ int set_params(dt_imageio_module_format_t *self,
 
   dt_imageio_heif_gui_t *g = (dt_imageio_heif_gui_t *)self->gui_data;
   dt_bauhaus_combobox_set(g->compression_type, d->compression_type);
+#ifdef HEIF_HIGH_BIT_DEPTH
   dt_bauhaus_combobox_set(g->bit_depth, d->bpp);
+#endif
   dt_bauhaus_slider_set(g->quality, d->quality);
 
   return 0;
@@ -255,6 +263,7 @@ int bpp(struct dt_imageio_module_data_t *data)
 
 int levels(struct dt_imageio_module_data_t *data)
 {
+  // TODO: if we reenable high bit mode we need to to adapt this return value
   return IMAGEIO_RGB | IMAGEIO_INT8;
 }
 
@@ -270,7 +279,11 @@ const char *extension(dt_imageio_module_data_t *data)
 
 const char *name()
 {
+#ifdef HEIF_HIGH_BIT_DEPTH
   return _("HEIF (8/16-bit)");
+#else
+  return _("HEIF (8-bit)");
+#endif
 }
 
 int flags(struct dt_imageio_module_data_t *data) {
@@ -289,6 +302,7 @@ static void quality_changed(GtkWidget *slider, gpointer user_data)
   dt_conf_set_int("plugins/imageio/format/heif/quality", quality);
 }
 
+#ifdef HEIF_HIGH_BIT_DEPTH
 static void bit_depth_changed(GtkWidget *slider, gpointer user_data)
 {
   const int bpp_index = dt_bauhaus_combobox_get(slider);
@@ -300,6 +314,7 @@ static void bit_depth_changed(GtkWidget *slider, gpointer user_data)
   }
   dt_conf_set_int("plugins/imageio/format/heif/bpp", bpp);
 }
+#endif
 
 void gui_init(dt_imageio_module_format_t *self)
 {
@@ -312,6 +327,7 @@ void gui_init(dt_imageio_module_format_t *self)
 
   self->widget = gtk_box_new(GTK_ORIENTATION_VERTICAL, 0);
 
+#ifdef HEIF_HIGH_BIT_DEPTH
   // Bit depth combo box
   gui->bit_depth = dt_bauhaus_combobox_new(NULL);
   dt_bauhaus_widget_set_label(gui->bit_depth, NULL, _("bit depth"));
@@ -331,6 +347,7 @@ void gui_init(dt_imageio_module_format_t *self)
                    "value-changed",
                    G_CALLBACK(bit_depth_changed),
                    NULL);
+#endif
 
   gui->compression_type = dt_bauhaus_combobox_new(NULL);
   dt_bauhaus_widget_set_label(gui->compression_type,
